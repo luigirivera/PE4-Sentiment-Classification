@@ -195,7 +195,7 @@ for clf in clfs:
   clf.fit(X_train, Y_train)
   y_pred = clf.predict(X_test)
   acc = accuracy_score(Y_test, y_pred)
-  f1 = f1_score(Y_test, y_pred, pos_label='negative')  
+  f1 = f1_score(Y_test, y_pred, labels='negative', average='macro')  
   
   print("%s\nAccuracy: %s\nF1 Score: %s\n=====" % (clf, acc, f1))
 
