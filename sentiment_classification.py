@@ -2,21 +2,22 @@ import nltk
 import os
 import csv
 import pandas as pd
-import numpy as np
+
 
 nltk.download('punkt')
 
 dataset = pd.read_csv('dataset/Virgin America and US Airways Tweets.csv', sep='\t') 
 
+import numpy as np
 dataset = np.array(dataset)
 
 sentiments = dataset.T[0]
 airline = dataset.T[1]
 text = dataset.T[2]
 
-print(sentiments[:5])
+print(sentiments[:5]) #Y in example
 print(airline[:5])
-print(text[:5])
+print(text[:5]) #X in example
 
 """# 2. Understanding the Corpus
 
@@ -31,11 +32,12 @@ So now that we've loaded our data and separated the word sense tag (*class label
 
 # Write your code here! Feel free to search up NumPy tutorials
 
-N = len(Y)
-labels, counts = np.unique(Y, return_counts=True)
+N = len(sentiments)
+labels, counts = np.unique(sentiments, return_counts=True)
   
-living_indexes, dump = np.where(dataset == 'living_sense')
-factory_indexes, dump = np.where(dataset == 'factory_sense')
+negative_indexes, dump = np.where(dataset == 'negative')
+positive_indexes, dump = np.where(dataset == 'positive')
+neutral_indexes, dump = np.where(dataset == 'neutral')
 
 from nltk import word_tokenize
 import string
@@ -51,60 +53,33 @@ def count_words(nArray):
     word_count += len(tokens)
   return word_count
 
-living_count = count_words(X[living_indexes])
-factory_count = count_words(X[factory_indexes])
+negative_count = count_words(text[negative_indexes])
+positive_count = count_words(text[positive_indexes])
+neutral_count = count_words(text[neutral_indexes])
 
 print("Total document count: %s" % N)
-for label, count, word_count in zip(labels, counts, [factory_count, living_count]):
-  print("%s: %s (%.4f); Word count: %s (%.4f)" % (label, count, count/N, word_count, word_count/np.sum([living_count, factory_count])))
+for label, count, word_count in zip(labels, counts, [negative_count, positive_count, neutral_count]):
+  print("%s: %s (%.4f); Word count: %s (%.4f)" % (label, count, count/N, word_count, word_count/np.sum([negative_count, positive_count, neutral_count])))
 
-"""**Question: What do we observe from the distribution? :)**
-
-Let's take some time to discuss some assumptions.
-
-This obviously doesn't tell us much, but it does give us an overview of what to expect from out data. But with that, we've successfully loaded our dataset and have a brief overview of it.
-
-# 3. Cleaning our raw text data (Pre-processing)
-
-**Data cleaning** is an important task in NLP as in most cases, we have horriblely structured data. Fortunately, we actually don't need to clearn our data too much since its actually quite organized. We do just need to remove some punctuations. So let's get on modifying our $X$. Since we're just removing punctuation, we can use reuse what we did awhile ago using Python's string translate.
-"""
-
-punct = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{}~'
+  punct = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{}~'
 transtab = str.maketrans(dict.fromkeys(punct, ''))
 
-print(X[6])
+print(text[6])
 
 i = 0
-while i < len(X):
-  X[i] = X[i].translate(transtab)
+while i < len(text):
+  text[i] = text[i].translate(transtab)
   i += 1
   
-print(X[6])
-
-"""Kindly note the removal of punctuation like this does have good and bad effects on the entire corpus. Good where we get rid of unwanted features, but bad where worods like `Ryburn's` turns to `Ryburn`. Do note that we're assuming we'll lose some information here and we just need to be ready to justify it.
-
-Cleaning of data might even refer to using lexicons to categorize words, applying POS tagging, looking at higher n-grams, etc. The basic idea is to ready the data for processing - hence why we call it **Data Pre-processing**!
-
-# 4. Splitting data into training and testing sets
-
-When looking to perform machine learning, we need a way to evaluate the performance of our models, so we look to split out data into training and testing sets. So here's the idea:
-
-![alt text](https://cdn-images-1.medium.com/max/1600/1*-8_kogvwmL1H6ooN1A1tsQ.png =400x)
-
-*source: https://towardsdatascience.com/train-test-split-and-cross-validation-in-python-80b61beca4b6*
-
-Our **training set** becomes the knowledge we learn, but it is possible to overfit on our knowledge - or memorize the features. The problem with memorization is that its hard to generalize unless its an exact match. So to test if our learned knowledge is generalizable, we get data that we have not seen / have not learned from and test - hence, the **test set**! There are also other concepts needed to be learned for the ML side, but we'll only tackle the bare minimum.
-
-So on to some code! Let's first split our data into training and test. We'll set our testing size to 30% of our total dataset, leaving 70% for training. These numbers can be changed around, but for this session, these numbers should be good.
-"""
+print(text[6])
 
 from sklearn.model_selection import train_test_split
 
 X_train, X_test, Y_train, Y_test = train_test_split(
-    X, # Features
-    Y, # Labels
+    text, # Features
+    sentiments, # Labels
     test_size = 0.3, # The defined test size; Training size is just 1 minus the test size
-    random_state = 12 # So we can shuffle the elements, but with some consistency
+    random_state = 17 # So we can shuffle the elements, but with some consistency
 )
 
 print("=====\nTraining Data")
@@ -119,48 +94,14 @@ labels, counts = np.unique(Y_test, return_counts=True)
 for label, count in zip(labels, counts):
   print("%s: %s (%.4f)" % (label, count, count/len(Y_test)))
 
-"""By default `train_test_split` performs a stratified split based on the classes.
-Stratify just means to arrange/sort into groups, so with our data, it balances
-our the 2 classes (living versus factory). 
-
-See more about the function here: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
-
-**Question: What would happen if we just randomly got indexes from the whole dataset? What implications could happen if we performed stratification or not?**
-
-# 5. Extracting features from text
-
-We discussed two ways to extract information in class: collocation and bag-of-words. Collocation looks at the words $\pm N$ from an anchor word at index $i$. We can typically look at the words and their POS tag. For bag-of-words, we don't care about the order and look at what words are found in the document. Both representations can be shown in the form of a vector, so in this session, we'll just focus on extracting a bag-of-words model. Let's look at sklearn's `CountVectorizer`
-
-**Remember! Don't touch the testing data yet!**
-"""
-
 from sklearn.feature_extraction.text import CountVectorizer
 
 vectorizer = CountVectorizer()
-vectorizer
-
-"""Some parameters to note:
-
-
-*   Analyzer - We can analyze at the **word** or **char**(acter) level
-*   Binary - If binary is set to true, it will count if the word appeared or not (0 or 1). If set to false, it will count how many times the word appeared.
-*   Max_df & min_df - Maximum and minimum document frequency. If a word is too common or too unique with respect to appearing across documents, it can cause noise. This can be solved by setting the min and max document frequencies.
-*   Max_features - Considers the top max_features ordered by term frequency
-*   Ngram_range - (1, 1) means we're only looking at 1-grams. (1, 2) means include 1 and 2-grams. Think of it as min and max.
-*   Tokenizer - you can set this as your own function for tokenizing!
-*   Vocabulary - You can set your own vocabulary here. If not, then it'll consider all words.
-
-For more info, check out their site: https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.CountVectorizer.html#sklearn.feature_extraction.text.CountVectorizer
-
-So let's trying running it on our training data.
-"""
-
-import pandas as pd
 
 x = vectorizer.fit_transform(X_train)
 count_vect_df = pd.DataFrame(x.todense(), columns=vectorizer.get_feature_names())
 
-count_vect_df.head()
+print(count_vect_df.head())
 
 """Before anything else, this is **Pandas**, easy-to-use data structures and data analysis tools for the Python. Think of it as an abstraction over NumPy and instead of treating your datasets as arrays, we can think of them as dataframes.
 
@@ -212,8 +153,8 @@ All ML algorithms have their own strentghs (training time, algorithmic complexic
 """
 
 X_train, X_test, Y_train, Y_test = train_test_split(
-    X, # Our training set
-    Y, # Our test set
+    text, # Our training set
+    sentiments, # Our test set
     test_size = 0.3, # The defined test size; Training size is just 1 minus the test size
     random_state = 12 # So we can shuffle the elements, but with some consistency
 )
@@ -254,7 +195,7 @@ for clf in clfs:
   clf.fit(X_train, Y_train)
   y_pred = clf.predict(X_test)
   acc = accuracy_score(Y_test, y_pred)
-  f1 = f1_score(Y_test, y_pred, pos_label='factory_sense')  
+  f1 = f1_score(Y_test, y_pred, pos_label='negative')  
   
   print("%s\nAccuracy: %s\nF1 Score: %s\n=====" % (clf, acc, f1))
 
