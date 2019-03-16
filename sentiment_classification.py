@@ -160,6 +160,11 @@ X_train, X_test, Y_train, Y_test = train_test_split(
 )
 
 # We'll just use simple counts
+# BRIAN'S NOTE - This is what we are going to be changing. We can experiment
+# using TF, TFIDF, POS counts, etc. This is what sir wants us to do. He want
+# s us to experiment with different feature extractors and their different 
+# configurations and determine which of those configurations leads to the 
+# most accurate training and test set for our data.
 vectorizer = CountVectorizer(
     max_df=.9, 
     min_df=.01,
@@ -185,16 +190,42 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score
 
 # The three classifiers that we'll use
-clfs = [
-    KNeighborsClassifier(n_neighbors=5), 
-    MultinomialNB(),
-    svm.SVC(kernel='linear')
-]
+# clfs = [
+#     KNeighborsClassifier(n_neighbors=5), 
+#     MultinomialNB(),
+#     svm.SVC(kernel='linear')
+# ]
 
-for clf in clfs:
-  clf.fit(X_train, Y_train)
-  y_pred = clf.predict(X_test)
-  acc = accuracy_score(Y_test, y_pred)
-  f1 = f1_score(Y_test, y_pred, average=None)
+# for clf in clfs:
+#   clf.fit(X_train, Y_train)
+#   y_pred = clf.predict(X_test)
+#   acc = accuracy_score(Y_test, y_pred)
+#   f1 = f1_score(Y_test, y_pred, labels='negative', average='macro')  
   
-  print("%s\nAccuracy: %s\nF1 Score: %s\n=====" % (clf, acc, f1))
+#   print("%s\nAccuracy: %s\nF1 Score: %s\n=====" % (clf, acc, f1))
+
+mnb = MultinomialNB()
+mnb.fit(X_train, Y_train)
+y_pred = mnb.predict(X_test)
+acc = accuracy_score(Y_test, y_pred)
+f1 = f1_score(Y_test, y_pred, labels="negative", average='macro')
+print("%s\nAccuracy: %s\nF1 Score: %s\n=====" % (mnb, acc, f1))
+
+"""Look! The Naive Bayes implementation performed best! This means that we're able to correctly predict up to 80.7% accuracy whether a given sentence that uses plant as either the living sense or the factory sense. Not bad, but not good.
+
+**HOWEVER**, this performance is because we didn't perform cross-validation and actually tune our models. These are all things that will be covered outside of NLP, but are very important to gain a grasp of classification, in general. Our models have many parameters, so we need to tune them to our training data and hope they can generalize when we test our the testing set. 
+
+But at least for now, we've performed the bare minimum for text classification. We've loaded the corpus in, extracted information, learned from the model, and tested it out on unseen data.
+
+The assignment will be uploaded via Canvas, but you'll make sure of this Python notebook in exploring the effects of pre-processing, feature extraction, and classification.
+
+# 7. Memes of the week
+
+Cause you all are awesome, here are the memes of the week
+
+![alt text](https://scontent.fmnl10-1.fna.fbcdn.net/v/t1.15752-9/52458975_2541773996049221_2083917586558353408_n.png?_nc_cat=100&_nc_ht=scontent.fmnl10-1.fna&oh=b484b4da148a84fe6a039e0d7cc97e27&oe=5CF6C184)
+
+Meme submitted by Blaise Cruz (yeaboi)
+
+![alt text](https://scontent.fmnl10-1.fna.fbcdn.net/v/t1.0-9/49209747_520866785074567_581292375763058688_n.png?_nc_cat=101&_nc_ht=scontent.fmnl10-1.fna&oh=005e4c0848f79f80bab633c142da65f4&oe=5CDE8ADE)
+"""
